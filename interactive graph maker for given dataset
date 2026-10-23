@@ -1,0 +1,52 @@
+from bs4 import BeautifulSoup
+import matplotlib.pyplot as plt
+import pandas as pd
+import requests
+
+target_url = input('Enter the website URL you want to scrape: ')
+
+headers = {
+    'User-Agent': (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        ' (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    )
+}
+
+try:
+  response = requests.get(target_url, headers=headers)
+  response.raise_for_status()
+except requests.exceptions.RequestException as e:
+  print('Error fetching the URL: {}'.format(e))
+  exit()
+
+soup = BeautifulSoup(response.text, 'html.parser')
+
+paragraphs = [p.get_text() for p in soup.find_all('p') if p.get_text().strip()]
+data = {
+    'Paragraph_Index': range(len(paragraphs)),
+    'Character_Count': [len(p) for p in paragraphs],
+}
+
+df = pd.DataFrame(data)
+
+if df.empty:
+  print(
+      'No paragraph text found on this page to analyze. Try a different URL.'
+  )
+  exit()
+
+print('\nHere is a preview of the available data:')
+print(df.head(10))
+
+print('\nAvailable columns to graph: {}'.format(list(df.columns)))
+x_column = input('Enter the exact name of the column you want for the X-axis: ')
+y_column = input('Enter the exact name of the column you want for the Y-axis: ')
+
+import seaborn as sns
+
+plt.figure(figsize=(10, 6))
+sns.barplot(x=x_column, y=y_column, data=df, palette='viridis')
+plt.title('Custom Graph of {} vs {}'.format(y_column, x_column))
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
